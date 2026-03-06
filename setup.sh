@@ -97,7 +97,7 @@ After=network.target
 User=skywatch-web
 WorkingDirectory=$PROJECT_DIR/src/web
 Environment="PATH=$PROJECT_DIR/venv/bin"
-ExecStart=$PROJECT_DIR/venv/bin/gunicorn --workers 3 --bind 0.0.0.0:80 app:app
+ExecStart=$PROJECT_DIR/venv/bin/gunicorn --workers 3 --bind 0.0.0.0:8000 app:app
 
 [Install]
 WantedBy=multi-user.target
@@ -152,6 +152,12 @@ echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
 # Route 169.254.169.254 to port 8080 locally ONLY for the web application user.
 # This ensures that the real GCP VM can still access its own metadata!
 iptables -t nat -A OUTPUT -d 169.254.169.254 -p tcp --dport 80 -m owner --uid-owner skywatch-web -j DNAT --to-destination 127.0.0.1:8080
+
+# Forward external port 80 to the web application running on port 8000
+iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 8000
+# Also redirect localhost traffic aimed at port 80 (needed if SSRF tests itself)
+iptables -t nat -A OUTPUT -d 127.0.0.1 -p tcp --dport 80 -j REDIRECT --to-port 8000
+
 iptables-save > /etc/iptables/rules.v4
 
 # --- 8. Compile and Setup the Vulnerable Capability Binary ---
