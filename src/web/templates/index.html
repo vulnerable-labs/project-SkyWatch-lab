@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkyWatch System Status</title>
+    <!-- Modern Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="background-animation"></div>
+    <div class="container">
+        <header class="glass-header">
+            <h1><span class="highlight">SkyWatch</span> System Status</h1>
+            <p class="subtitle">NebulaStream Dynamics Internal Monitoring</p>
+        </header>
+
+        <div class="dashboard-grid">
+            <!-- CPU Metrics -->
+            <div class="glass-card stat-card">
+                <div class="icon">💻</div>
+                <div class="stat-info">
+                    <h3>CPU Usage</h3>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" style="width: {{ cpu }}%;"></div>
+                    </div>
+                    <p class="stat-value">{{ cpu }}%</p>
+                </div>
+            </div>
+
+            <!-- Memory Metrics -->
+            <div class="glass-card stat-card">
+                <div class="icon">📈</div>
+                <div class="stat-info">
+                    <h3>Memory Usage</h3>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" style="width: {{ mem }}%;"></div>
+                    </div>
+                    <p class="stat-value">{{ mem }}%</p>
+                </div>
+            </div>
+
+            <!-- Service Health -->
+            <div class="glass-card full-width">
+                <h3>Service Health Overview</h3>
+                <table class="services-table">
+                    <thead>
+                        <tr>
+                            <th>Service Name</th>
+                            <th>Status</th>
+                            <th>Uptime</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for service in services %}
+                        <tr>
+                            <td>{{ service.name }}</td>
+                            <td><span class="status-badge {{ service.status|lower }}">{{ service.status }}</span></td>
+                            <td>{{ service.uptime }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- URL Checker (Debug Feature - Vulnerable) -->
+            <div class="glass-card full-width debug-section">
+                <h3>System Connect Checker (Admin Debug)</h3>
+                <p>Test connectivity to internal endpoints and external services.</p>
+                
+                <div class="checker-form">
+                    <input type="text" id="urlInput" placeholder="http://127.0.0.1:8080/health" value="http://example.com">
+                    <button id="checkBtn" onclick="checkUrl()">Check Service</button>
+                </div>
+                
+                <div id="resultContainer" class="result-container hidden">
+                    <div class="loader hidden" id="loader"></div>
+                    <pre id="resultOutput"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function checkUrl() {
+            const url = document.getElementById('urlInput').value;
+            const resultContainer = document.getElementById('resultContainer');
+            const resultOutput = document.getElementById('resultOutput');
+            const loader = document.getElementById('loader');
+            
+            if (!url) return;
+
+            resultContainer.classList.remove('hidden');
+            resultOutput.textContent = '';
+            loader.classList.remove('hidden');
+
+            try {
+                const response = await fetch(`/check?url=${encodeURIComponent(url)}`);
+                const data = await response.json();
+                
+                loader.classList.add('hidden');
+                
+                if (data.status === 'success') {
+                    resultOutput.innerHTML = `<span class="success">Status Code: ${data.http_status}</span>\n\nPreview:\n${data.content_preview}`;
+                } else if (data.status === 'error') {
+                    resultOutput.innerHTML = `<span class="error">Error: ${data.error_message}</span>`;
+                } else {
+                    resultOutput.innerHTML = `<span class="error">Failed to complete request.</span>`;
+                }
+            } catch (err) {
+                loader.classList.add('hidden');
+                resultOutput.innerHTML = `<span class="error">Connection Error: ${err.message}</span>`;
+            }
+        }
+    </script>
+</body>
+</html>
